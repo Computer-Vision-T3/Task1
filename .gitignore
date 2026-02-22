@@ -1,0 +1,28 @@
+# Build directory and CMake files
+build/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+
+# Executables
+*.exe
+*.out
+*.app
+run
+
+# Qt Auto-Generated Files
+ui_*.h
+moc_*.cpp
+moc_*.h
+*_autogen/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.user
