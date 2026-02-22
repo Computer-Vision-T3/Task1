@@ -3,8 +3,9 @@
 
 TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
     QHBoxLayout* layout = new QHBoxLayout(this);
+    layout->setContentsMargins(5, 5, 5, 5); // Give it a little breathing room
     
-    uploadBtn = new QPushButton("Upload Image", this);
+    // 1. Create the controls
     clearBtn = new QPushButton("Clear (Use Original)", this);
     applyBtn = new QPushButton("Apply Effect", this);
     
@@ -17,19 +18,26 @@ TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
     
     paramBox = new ParameterBox(this);
     
-    layout->addWidget(uploadBtn);
+    // 2. Add them to the layout
     layout->addWidget(operationSelector);
-    layout->addWidget(paramBox, 1);
+    layout->addWidget(paramBox, 1); // The '1' makes the parameter box stretch to fill empty space
     layout->addWidget(clearBtn);
     layout->addWidget(applyBtn);
     
-    connect(uploadBtn, &QPushButton::clicked, this, &TopTaskBar::uploadRequested);
+    // 3. Connect the buttons to the outbound signals
     connect(applyBtn, &QPushButton::clicked, this, &TopTaskBar::applyRequested);
     connect(clearBtn, &QPushButton::clicked, this, &TopTaskBar::clearRequested);
     
-    connect(operationSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), paramBox, &ParameterBox::updateParametersForTask);
+    // 4. Connect the dropdown to update the UI layouts AND the ParameterBox
+    connect(operationSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), 
+            paramBox, &ParameterBox::updateParametersForTask);
+            
+    connect(operationSelector, QOverload<int>::of(&QComboBox::currentIndexChanged), 
+            this, [this](int index){
+        emit taskChanged(index + 1); // +1 aligns the 0-based index with your Task 1-10 numbering
+    });
 }
 
 int TopTaskBar::getSelectedOperation() const {
-    return operationSelector->currentIndex() + 1; // +1 to align with Task 1-10
+    return operationSelector->currentIndex() + 1;
 }

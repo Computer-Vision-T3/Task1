@@ -1,50 +1,51 @@
 #include "AppController.h"
-#include <QFileDialog>
 #include <QMessageBox>
 
-AppController::AppController(ImagePanel* inputP, ImagePanel* outputP, TopTaskBar* tb, QObject *parent)
-    : QObject(parent), inputPanel(inputP), outputPanel(outputP), taskBar(tb) {
+AppController::AppController(MainWindow* window, QObject *parent)
+    : QObject(parent), mainWindow(window) {
     
-    connect(taskBar, &TopTaskBar::uploadRequested, this, &AppController::handleUpload);
-    connect(taskBar, &TopTaskBar::applyRequested, this, &AppController::handleApply);
-    connect(taskBar, &TopTaskBar::clearRequested, this, &AppController::handleClear);
+    connect(mainWindow->taskBar, &TopTaskBar::applyRequested, this, &AppController::handleApply);
+    connect(mainWindow->taskBar, &TopTaskBar::clearRequested, this, &AppController::handleClear);
+    connect(mainWindow->taskBar, &TopTaskBar::taskChanged, this, &AppController::handleTaskChange);
 }
 
-void AppController::handleUpload() {
-    QString fileName = QFileDialog::getOpenFileName(nullptr, "Open Image", "", "Images (*.png *.xpm *.jpg *.bmp)");
-    if (!fileName.isEmpty()) {
-        cv::Mat image = cv::imread(fileName.toStdString(), cv::IMREAD_COLOR);
-        if(!image.empty()) {
-            stateManager.setOriginalImage(image);
-            inputPanel->setImage(image);
-            outputPanel->clearImage();
-        }
+void AppController::handleTaskChange(int taskIndex) {
+    // DYNAMIC UI ROUTING
+    if (taskIndex == 10) { 
+        // Task 10: Hybrid (Needs 2 inputs, 1 output)
+        mainWindow->rebuildPanels(2, 1, {"Image 1 (High Freq)", "Image 2 (Low Freq)"}, {"Hybrid Output"});
+    } 
+    else if (taskIndex == 8) { 
+        // Task 8: Color Transform (1 input, 4 outputs)
+        mainWindow->rebuildPanels(1, 4, {"RGB Input"}, {"Grayscale", "R Histogram", "G Histogram", "B Histogram"});
+    } 
+    else { 
+        // Default: 1 input, 1 output
+        mainWindow->rebuildPanels(1, 1, {"Input Image"}, {"Output Result"});
     }
 }
 
 void AppController::handleClear() {
     stateManager.triggerClear();
-    inputPanel->setImage(stateManager.getOriginalImage()); // visually reset the input panel
+    // Clear all outputs visually
+    for(auto* out : mainWindow->outputPanels) { out->clearImage(); }
 }
 
 void AppController::handleApply() {
-    cv::Mat inputImage = stateManager.getNextInput();
-    if(inputImage.empty()) {
-        QMessageBox::warning(nullptr, "Warning", "Please upload an image first.");
+    int task = mainWindow->taskBar->getSelectedOperation();
+    
+    // Example validation: Check if input 1 is loaded
+    if(mainWindow->inputPanels.isEmpty() || mainWindow->inputPanels[0]->getCurrentImage().empty()) {
+        QMessageBox::warning(nullptr, "Warning", "Please load the required input images first.");
         return;
     }
 
-    int task = taskBar->getSelectedOperation();
+    // TODO: Pass mainWindow->inputPanels to backend interface
+    // Fallback placeholder logic just to prove it works:
     cv::Mat resultImage;
-
-    // TODO: Connect to backend ImageProcessorInterface here
-    // Example pseudo-code:
-    // resultImage = Backend::Process(task, inputImage, parameters);
+    cv::bitwise_not(mainWindow->inputPanels[0]->getCurrentImage(), resultImage);
     
-    // Fallback logic so the UI does something right now:
-    cv::bitwise_not(inputImage, resultImage); // Just inverts the image as a placeholder test
-
-    stateManager.setOutputImage(resultImage);
-    inputPanel->setImage(inputImage); // Show what was fed in
-    outputPanel->setImage(resultImage); // Show the result
+    if(!mainWindow->outputPanels.isEmpty()) {
+        mainWindow->outputPanels[0]->setImage(resultImage);
+    }
 }

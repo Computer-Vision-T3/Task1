@@ -2,24 +2,21 @@
 #define APPCONTROLLER_H
 
 #include <QObject>
-#include "../components/ImagePanel.h"
-#include "../components/TopTaskBar.h"
+#include "../MainWindow.h"
 #include "ImageStateManager.h"
 
 class AppController : public QObject {
     Q_OBJECT
 public:
-    AppController(ImagePanel* inputP, ImagePanel* outputP, TopTaskBar* tb, QObject *parent = nullptr);
+    AppController(MainWindow* window, QObject *parent = nullptr);
 
 private slots:
-    void handleUpload();
+    void handleTaskChange(int taskIndex);
     void handleApply();
     void handleClear();
 
 private:
-    ImagePanel* inputPanel;
-    ImagePanel* outputPanel;
-    TopTaskBar* taskBar;
+    MainWindow* mainWindow;
     ImageStateManager stateManager;
 };
 

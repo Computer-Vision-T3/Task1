@@ -1,20 +1,18 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include "controllers/AppController.h"
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
     setupCustomLayout();
+    appController = new AppController(this);
     
-    // Initialize controller and connect UI to logic
-    appController = new AppController(inputPanel, outputPanel, taskBar, this);
+    // Default boot state: 1 input, 1 output
+    rebuildPanels(1, 1, {"Input"}, {"Output"});
 }
 
-MainWindow::~MainWindow() {
-    delete ui;
-}
+MainWindow::~MainWindow() { delete ui; }
 
 void MainWindow::setupCustomLayout() {
     QWidget* centralWidget = new QWidget(this);
@@ -23,13 +21,35 @@ void MainWindow::setupCustomLayout() {
     taskBar = new TopTaskBar(this);
     mainLayout->addWidget(taskBar);
     
-    QHBoxLayout* imageLayout = new QHBoxLayout();
-    inputPanel = new ImagePanel("Input", this);
-    outputPanel = new ImagePanel("Output", this);
+    mainSplitter = new QSplitter(Qt::Horizontal, this);
+    leftSplitter = new QSplitter(Qt::Vertical, this);  // Inputs stack vertically
+    rightSplitter = new QSplitter(Qt::Vertical, this); // Outputs stack vertically
     
-    imageLayout->addWidget(inputPanel);
-    imageLayout->addWidget(outputPanel);
+    mainSplitter->addWidget(leftSplitter);
+    mainSplitter->addWidget(rightSplitter);
+    mainLayout->addWidget(mainSplitter, 1);
     
-    mainLayout->addLayout(imageLayout);
     setCentralWidget(centralWidget);
+}
+
+void MainWindow::rebuildPanels(int numInputs, int numOutputs, QStringList inTitles, QStringList outTitles) {
+    // Clear old panels out of memory
+    qDeleteAll(inputPanels); inputPanels.clear();
+    qDeleteAll(outputPanels); outputPanels.clear();
+
+    // Spawn new Input panels
+    for(int i = 0; i < numInputs; ++i) {
+        QString title = (i < inTitles.size()) ? inTitles[i] : QString("Input %1").arg(i+1);
+        ImagePanel* panel = new ImagePanel(title, true, this);
+        leftSplitter->addWidget(panel);
+        inputPanels.append(panel);
+    }
+
+    // Spawn new Output panels
+    for(int i = 0; i < numOutputs; ++i) {
+        QString title = (i < outTitles.size()) ? outTitles[i] : QString("Output %1").arg(i+1);
+        ImagePanel* panel = new ImagePanel(title, false, this);
+        rightSplitter->addWidget(panel);
+        outputPanels.append(panel);
+    }
 }

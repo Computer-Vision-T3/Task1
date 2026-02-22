@@ -14,13 +14,12 @@ public:
     int getSelectedOperation() const;
 
 signals:
-    void uploadRequested();
     void applyRequested();
     void clearRequested();
+    void taskChanged(int taskIndex); // <-- This is the missing piece!
 
 private:
     QComboBox* operationSelector;
-    QPushButton* uploadBtn;
     QPushButton* applyBtn;
     QPushButton* clearBtn;
     ParameterBox* paramBox;
