@@ -1,51 +1,62 @@
 #include "AppController.h"
-#include <QMessageBox>
+#include "../MainWindow.h"
+#include "../components/TopTaskBar.h"
+#include "../components/ImagePanel.h"
+#include "../../backend/Module5_FrequencyAndHybrid/HybridImageBuilder.h"
+#include "../../backend/Module5_FrequencyAndHybrid/FrequencyFilters.h" // Add this
+#include <QInputDialog> // For a quick selection list
 
 AppController::AppController(MainWindow* window, QObject *parent)
     : QObject(parent), mainWindow(window) {
-    
-    connect(mainWindow->taskBar, &TopTaskBar::applyRequested, this, &AppController::handleApply);
-    connect(mainWindow->taskBar, &TopTaskBar::clearRequested, this, &AppController::handleClear);
-    connect(mainWindow->taskBar, &TopTaskBar::taskChanged, this, &AppController::handleTaskChange);
+    connect(mainWindow->getTopTaskBar(), &TopTaskBar::taskChanged, this, &AppController::handleTaskChange);
+    connect(mainWindow->getTopTaskBar(), &TopTaskBar::applyRequested, this, &AppController::handleApply);
+    connect(mainWindow->getTopTaskBar(), &TopTaskBar::clearRequested, this, &AppController::handleClear);
 }
 
 void AppController::handleTaskChange(int taskIndex) {
-    // DYNAMIC UI ROUTING
-    if (taskIndex == 10) { 
-        // Task 10: Hybrid (Needs 2 inputs, 1 output)
-        mainWindow->rebuildPanels(2, 1, {"Image 1 (High Freq)", "Image 2 (Low Freq)"}, {"Hybrid Output"});
-    } 
-    else if (taskIndex == 8) { 
-        // Task 8: Color Transform (1 input, 4 outputs)
-        mainWindow->rebuildPanels(1, 4, {"RGB Input"}, {"Grayscale", "R Histogram", "G Histogram", "B Histogram"});
-    } 
-    else { 
-        // Default: 1 input, 1 output
-        mainWindow->rebuildPanels(1, 1, {"Input Image"}, {"Output Result"});
+    mainWindow->updateLayoutForTask(taskIndex);
+}
+
+void AppController::handleApply() {
+    int taskIndex = mainWindow->getTopTaskBar()->getSelectedOperation();
+    auto& inputs = mainWindow->getInputPanels();
+    auto& outputs = mainWindow->getOutputPanels();
+
+    // --- FREQUENCY FILTER LOGIC (Index 9) ---
+    if (taskIndex == 9) {
+        if (inputs.isEmpty() || inputs[0]->getImage().empty()) return;
+
+        // 1. Let user choose type via a list
+        QStringList items;
+        items << "Low Pass" << "High Pass";
+        bool ok;
+        QString item = QInputDialog::getItem(mainWindow, "Filter Choice", "Select Filter Type:", items, 0, false, &ok);
+
+        if (ok && !item.isEmpty()) {
+            FrequencyFilters::FilterType type = (item == "Low Pass") ? FrequencyFilters::LOW_PASS : FrequencyFilters::HIGH_PASS;
+            
+            // 2. Apply Filter (D0 = 50)
+            cv::Mat result = FrequencyFilters::applyFilter(inputs[0]->getImage(), 50.0f, type);
+            
+            if (!outputs.isEmpty()) outputs[0]->displayImage(result);
+        }
+    }
+
+    // --- HYBRID IMAGE LOGIC (Index 10) ---
+    if (taskIndex == 10) {
+        if (inputs.size() >= 2) {
+            cv::Mat img1 = inputs[0]->getImage();
+            cv::Mat img2 = inputs[1]->getImage();
+            if (!img1.empty() && !img2.empty()) {
+                cv::Mat result = HybridImageBuilder::createHybrid(img1, img2, 15);
+                if (!outputs.isEmpty()) outputs[0]->displayImage(result);
+            }
+        }
     }
 }
 
 void AppController::handleClear() {
-    stateManager.triggerClear();
-    // Clear all outputs visually
-    for(auto* out : mainWindow->outputPanels) { out->clearImage(); }
-}
-
-void AppController::handleApply() {
-    int task = mainWindow->taskBar->getSelectedOperation();
-    
-    // Example validation: Check if input 1 is loaded
-    if(mainWindow->inputPanels.isEmpty() || mainWindow->inputPanels[0]->getCurrentImage().empty()) {
-        QMessageBox::warning(nullptr, "Warning", "Please load the required input images first.");
-        return;
-    }
-
-    // TODO: Pass mainWindow->inputPanels to backend interface
-    // Fallback placeholder logic just to prove it works:
-    cv::Mat resultImage;
-    cv::bitwise_not(mainWindow->inputPanels[0]->getCurrentImage(), resultImage);
-    
-    if(!mainWindow->outputPanels.isEmpty()) {
-        mainWindow->outputPanels[0]->setImage(resultImage);
+    for(auto* panel : mainWindow->getOutputPanels()) {
+        panel->clear();
     }
 }
