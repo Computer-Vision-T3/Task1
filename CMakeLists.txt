@@ -8,6 +8,9 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+# ---> THIS IS THE MAGIC LINE THAT FIXES THE ERROR <---
+set(CMAKE_AUTOUIC_SEARCH_PATHS "src/frontend/ui")
+
 # 1. FORCE CMake to look in system directories FIRST, not FSL
 set(CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu;/usr")
 set(CMAKE_IGNORE_PATH "/home/sandy/fsl/lib;/home/sandy/fsl/bin")

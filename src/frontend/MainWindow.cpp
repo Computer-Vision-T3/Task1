@@ -33,16 +33,26 @@ void MainWindow::setupCustomLayout() {
     
     mainSplitter->addWidget(leftSplitter);
     mainSplitter->addWidget(rightSplitter);
+
+    // --- NEW SIDEBAR SETUP ---
+    infoSidebar = new QTextBrowser(this);
+    infoSidebar->setStyleSheet("background-color: #f8f9fa; padding: 15px; border-left: 1px solid #ccc; font-size: 14px;");
+    infoSidebar->hide(); // Hidden by default
+    mainSplitter->addWidget(infoSidebar);
     
-    // Set initial proportions (50% left, 50% right)
-    mainSplitter->setStretchFactor(0, 1);
-    mainSplitter->setStretchFactor(1, 1);
+    // Set initial proportions
+    mainSplitter->setStretchFactor(0, 2); // Left 
+    mainSplitter->setStretchFactor(1, 2); // Right
+    mainSplitter->setStretchFactor(2, 1); // Sidebar (takes up less space)
 
     mainLayout->addWidget(mainSplitter, 1);
     setCentralWidget(centralWidget);
 } 
 
 void MainWindow::updateLayoutForTask(int taskIndex) {
+    // Hide the sidebar by default when switching tasks
+    if (infoSidebar) infoSidebar->hide();
+
     // Index 10: Hybrid (2 Inputs, 1 Output)
     if (taskIndex == 10) {
         rebuildPanels(2, 1, {"Image (Low Freq)", "Image (High Freq)"}, {"Hybrid Result"});
@@ -50,6 +60,12 @@ void MainWindow::updateLayoutForTask(int taskIndex) {
     // Index 9: Frequency Filters (1 Input, 1 Output)
     else if (taskIndex == 9) {
         rebuildPanels(1, 1, {"Input Image"}, {"Filtered Result"});
+    }
+    // Index 7: Entropy (1 Input, 1 Output, 1 Sidebar)
+    else if (taskIndex == 7) {
+        rebuildPanels(1, 1, {"Input Image"}, {"Pixel Distribution Graph"});
+        infoSidebar->show(); // Reveal the sidebar
+        infoSidebar->setHtml("<h3>Entropy Analysis</h3><p>Upload an image and hit apply to see the results.</p>");
     }
     // Default (1 Input, 1 Output)
     else {

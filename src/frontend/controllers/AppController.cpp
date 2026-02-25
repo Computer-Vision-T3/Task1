@@ -2,9 +2,11 @@
 #include "../MainWindow.h"
 #include "../components/TopTaskBar.h"
 #include "../components/ImagePanel.h"
+#include "../../backend/Module2_EdgesAndEntropy/EdgeDetectors.h"
+#include "../../backend/Module2_EdgesAndEntropy/EntropyCalculator.h" 
 #include "../../backend/Module5_FrequencyAndHybrid/HybridImageBuilder.h"
-#include "../../backend/Module5_FrequencyAndHybrid/FrequencyFilters.h" // Add this
-#include <QInputDialog> // For a quick selection list
+#include "../../backend/Module5_FrequencyAndHybrid/FrequencyFilters.h" 
+#include <QInputDialog> 
 
 AppController::AppController(MainWindow* window, QObject *parent)
     : QObject(parent), mainWindow(window) {
@@ -22,11 +24,65 @@ void AppController::handleApply() {
     auto& inputs = mainWindow->getInputPanels();
     auto& outputs = mainWindow->getOutputPanels();
 
-    // --- FREQUENCY FILTER LOGIC (Index 9) ---
+    // --- TASK 3: EDGE DETECTION ---
+    if (taskIndex == 3) {
+        if (inputs.isEmpty() || inputs[0]->getImage().empty()) return;
+
+        QStringList items;
+        items << "Sobel (Manual)" << "Prewitt (Manual)" << "Roberts (Manual)" << "Canny (OpenCV)";
+        bool ok;
+        QString item = QInputDialog::getItem(mainWindow, "Edge Detection", "Select Edge Mask:", items, 0, false, &ok);
+
+        if (ok && !item.isEmpty()) {
+            cv::Mat result;
+            if (item == "Sobel (Manual)") {
+                result = EdgeDetectors::applySobel(inputs[0]->getImage());
+            } 
+            else if (item == "Prewitt (Manual)") {
+                result = EdgeDetectors::applyPrewitt(inputs[0]->getImage());
+            } 
+            else if (item == "Roberts (Manual)") {
+                result = EdgeDetectors::applyRoberts(inputs[0]->getImage());
+            } 
+            else if (item == "Canny (OpenCV)") {
+                result = EdgeDetectors::applyCanny(inputs[0]->getImage(), 50.0, 150.0);
+            }
+            if (!outputs.isEmpty()) outputs[0]->displayImage(result);
+        }
+    }
+
+    // --- TASK 7: ENTROPY ---
+    if (taskIndex == 7) {
+        if (inputs.isEmpty() || inputs[0]->getImage().empty()) return;
+
+        double entropy = EntropyCalculator::calculate(inputs[0]->getImage());
+        cv::Mat histGraph = EntropyCalculator::plotHistogram(inputs[0]->getImage());
+        
+        if (!outputs.isEmpty()) outputs[0]->displayImage(histGraph);
+
+        // Build the HTML explanation for the sidebar
+        QString explanation = QString("<h3>Entropy Analysis</h3>"
+                                      "<hr>"
+                                      "<p style='font-size: 16px;'><b>Calculated Value:</b> <span style='color: #d9534f;'>%1</span></p>")
+                                      .arg(entropy, 0, 'f', 4);
+
+        explanation += "<br><h4>What does this mean?</h4>";
+        
+        if (entropy < 4.0) {
+            explanation += "<p><b>Low Entropy:</b> This image has very little contrast or detail. It likely consists of large, uniform areas of the same color.</p>";
+        } else if (entropy >= 4.0 && entropy <= 7.0) {
+            explanation += "<p><b>Moderate Entropy:</b> This image has a standard amount of detail, contrast, and structural variance.</p>";
+        } else {
+            explanation += "<p><b>High Entropy:</b> This image is highly complex, detailed, or noisy. The pixel values are scattered widely across the entire spectrum.</p>";
+        }
+
+        mainWindow->getInfoSidebar()->setHtml(explanation);
+    }
+
+    // --- TASK 9: FREQUENCY FILTERS ---
     if (taskIndex == 9) {
         if (inputs.isEmpty() || inputs[0]->getImage().empty()) return;
 
-        // 1. Let user choose type via a list
         QStringList items;
         items << "Low Pass" << "High Pass";
         bool ok;
@@ -34,15 +90,12 @@ void AppController::handleApply() {
 
         if (ok && !item.isEmpty()) {
             FrequencyFilters::FilterType type = (item == "Low Pass") ? FrequencyFilters::LOW_PASS : FrequencyFilters::HIGH_PASS;
-            
-            // 2. Apply Filter (D0 = 50)
             cv::Mat result = FrequencyFilters::applyFilter(inputs[0]->getImage(), 50.0f, type);
-            
             if (!outputs.isEmpty()) outputs[0]->displayImage(result);
         }
     }
 
-    // --- HYBRID IMAGE LOGIC (Index 10) ---
+    // --- TASK 10: HYBRID IMAGES ---
     if (taskIndex == 10) {
         if (inputs.size() >= 2) {
             cv::Mat img1 = inputs[0]->getImage();

@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QSplitter>
 #include <QList>
+#include <QTextBrowser> // <-- Added for the sidebar
 #include "components/TopTaskBar.h"
 #include "components/ImagePanel.h"
 
@@ -24,6 +25,7 @@ public:
     TopTaskBar* getTopTaskBar() { return taskBar; }
     QList<ImagePanel*>& getInputPanels() { return inputPanels; }
     QList<ImagePanel*>& getOutputPanels() { return outputPanels; }
+    QTextBrowser* getInfoSidebar() { return infoSidebar; } // <-- Getter for the sidebar
 
     // Logic to change UI based on task
     void updateLayoutForTask(int taskIndex);
@@ -36,6 +38,7 @@ private:
     QSplitter* mainSplitter;
     QSplitter* leftSplitter;
     QSplitter* rightSplitter;
+    QTextBrowser* infoSidebar; // <-- Pointer to the sidebar
 
     QList<ImagePanel*> inputPanels;
     QList<ImagePanel*> outputPanels;
@@ -44,4 +47,4 @@ private:
     void rebuildPanels(int numInputs, int numOutputs, QStringList inTitles, QStringList outTitles);
 };
 
-#endif
+#endif // MAINWINDOW_H
