@@ -21,29 +21,42 @@ void ParameterBox::updateParametersForTask(int taskIndex) {
 
     // Dynamically inject the correct UI controls based on the selected task
     switch (taskIndex) {
-        case 0: { // 1. Add Noise
+            case 0: { // 1. Add Noise
             layout->addWidget(new QLabel("Noise Type:", this));
             QComboBox* noiseType = new QComboBox(this);
+            noiseType->setObjectName("noiseTypeCombo");
             noiseType->addItems({"Uniform", "Gaussian", "Salt & Pepper"});
             layout->addWidget(noiseType);
+
+            // slider for intensity or stddev
+                layout->addWidget(new QLabel("Intensity:", this));
+                QSlider* intensitySlider = new QSlider(Qt::Horizontal, this);
+                intensitySlider->setRange(0, 100);
+                intensitySlider->setObjectName("noiseIntensitySlider");
+                intensitySlider->setValue(20);
+                layout->addWidget(intensitySlider);
             break;
         }
         case 1: { // 2. Low Pass Filter
             layout->addWidget(new QLabel("Filter:", this));
             QComboBox* filterType = new QComboBox(this);
+            filterType->setObjectName("filterTypeCombo");
             filterType->addItems({"Average", "Gaussian", "Median"});
             layout->addWidget(filterType);
 
             layout->addWidget(new QLabel("Kernel Size:", this));
             QSpinBox* kernelSize = new QSpinBox(this);
+            kernelSize->setObjectName("kernelSizeSpin");
             kernelSize->setRange(3, 31);
             kernelSize->setSingleStep(2); // Kernels are usually odd numbers (3, 5, 7...)
+            kernelSize->setValue(3); 
             layout->addWidget(kernelSize);
             break;
         }
         case 2: { // 3. Edge Detection
             layout->addWidget(new QLabel("Mask:", this));
             QComboBox* maskType = new QComboBox(this);
+            maskType->setObjectName("maskTypeCombo");
             maskType->addItems({"Sobel", "Roberts", "Prewitt", "Canny"});
             layout->addWidget(maskType);
             break;

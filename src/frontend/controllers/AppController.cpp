@@ -6,15 +6,53 @@
 #include "../../backend/Module2_EdgesAndEntropy/EntropyCalculator.h" 
 #include "../../backend/Module5_FrequencyAndHybrid/HybridImageBuilder.h"
 #include "../../backend/Module5_FrequencyAndHybrid/FrequencyFilters.h" 
+#include "../../backend/Module1_NoiseAndFilters/NoiseGenerator.h"
+#include "../../backend/Module1_NoiseAndFilters/LowPassFilters.h"
 // Updated paths and includes for your current backend setup
 #include "../../backend/Module3_HistogramsAndColor/HistogramTools.h"
 #include "../../backend/Module3_HistogramsAndColor/ColorTransformations.h"
 #include <QInputDialog> 
+#include <QCoreApplication>
+#include <QDir>
+#include <QDateTime>
+
+namespace {
+cv::Mat toGray(const cv::Mat& image) {
+    if (image.empty()) return image;
+    if (image.channels() == 1) return image;
+
+    cv::Mat gray;
+    if (image.channels() == 3) {
+        cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
+    } else if (image.channels() == 4) {
+        cv::cvtColor(image, gray, cv::COLOR_BGRA2GRAY);
+    } else {
+        gray = image.clone();
+    }
+    return gray;
+}
+
+bool saveOutputImage(const cv::Mat& image, int taskIndex) {
+    if (image.empty()) return false;
+
+    QDir outputDir(QCoreApplication::applicationDirPath());
+    outputDir.cdUp(); // Move from build/ to project root
+    if (!outputDir.exists("test")) {
+        outputDir.mkpath("test");
+    }
+
+    const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss_zzz");
+    const QString fileName = QString("task%1_%2.png").arg(taskIndex).arg(timestamp);
+    const QString filePath = outputDir.filePath("test/" + fileName);
+    return cv::imwrite(filePath.toStdString(), image);
+}
+}
 
 AppController::AppController(MainWindow* window, QObject *parent)
     : QObject(parent), mainWindow(window) {
     connect(mainWindow->getTopTaskBar(), &TopTaskBar::taskChanged, this, &AppController::handleTaskChange);
     connect(mainWindow->getTopTaskBar(), &TopTaskBar::applyRequested, this, &AppController::handleApply);
+    connect(mainWindow->getTopTaskBar(), &TopTaskBar::saveRequested, this, &AppController::handleSave);
     connect(mainWindow->getTopTaskBar(), &TopTaskBar::clearRequested, this, &AppController::handleClear);
 }
 
@@ -28,8 +66,59 @@ void AppController::handleApply() {
     auto& outputs = mainWindow->getOutputPanels();
 
     if (inputs.isEmpty() || inputs[0]->getImage().empty()) return;
-    cv::Mat currentImg = inputs[0]->getImage();
+    cv::Mat originalImg = inputs[0]->getImage();
+    cv::Mat currentImg = toGray(originalImg);
 
+    auto displayOutput = [&](const cv::Mat& image) {
+        if (image.empty()) return;
+        cv::Mat grayImage = toGray(image);
+        if (!outputs.isEmpty()) outputs[0]->displayImage(grayImage);
+    };
+        // --- TASK 1: ADD NOISE ---
+    if (taskIndex == 1) {
+        ParameterBox* paramBox = mainWindow->getTopTaskBar()->getParameterBox();
+        QComboBox* noiseTypeCombo = paramBox->findChild<QComboBox*>("noiseTypeCombo");
+        QSlider* intensitySlider = paramBox->findChild<QSlider*>("noiseIntensitySlider");
+
+        if (!noiseTypeCombo || !intensitySlider) return; // safety check
+
+        QString noiseType = noiseTypeCombo->currentText();
+        int intensity = intensitySlider->value(); // 0 - 100
+        cv::Mat result;
+        if (noiseType == "Uniform") {
+            result = NoiseGenerator::addUniformNoise(currentImg, intensity);
+        } 
+        else if (noiseType == "Gaussian") {
+            result = NoiseGenerator::addGaussianNoise(currentImg, intensity);
+        } 
+        else if (noiseType == "Salt & Pepper") {
+            double amount = intensity / 100.0; // slider من 0 لـ 100 يتحول لنسبة
+            result = NoiseGenerator::addSaltPepperNoise(currentImg, amount);
+        }
+        displayOutput(result);
+    }
+    // --- TASK 2: LOW PASS FILTER ---
+    else if (taskIndex == 2) {
+        ParameterBox* paramBox = mainWindow->getTopTaskBar()->getParameterBox();
+        QComboBox* filterTypeCombo = paramBox->findChild<QComboBox*>("filterTypeCombo");
+        QSpinBox* kernelSizeSpin = paramBox->findChild<QSpinBox*>("kernelSizeSpin");
+
+        if (!filterTypeCombo || !kernelSizeSpin) return; // safety check
+
+        QString filterType = filterTypeCombo->currentText();
+        int kernelSize = kernelSizeSpin->value();
+        cv::Mat result;
+        if (filterType == "Average") {
+            result = LowPassFilters::applyAverage(currentImg, kernelSize);
+        } 
+        else if (filterType == "Gaussian") {
+            result = LowPassFilters::applyGaussian(currentImg, kernelSize);
+        } 
+        else if (filterType == "Median") {
+            result = LowPassFilters::applyMedian(currentImg, kernelSize);
+        }
+        displayOutput(result);
+    }
     // --- TASK 3: EDGE DETECTION ---
     if (taskIndex == 3) {
         QStringList items;
@@ -44,7 +133,7 @@ void AppController::handleApply() {
             else if (item == "Roberts (Manual)") result = EdgeDetectors::applyRoberts(currentImg);
             else if (item == "Canny (OpenCV)") result = EdgeDetectors::applyCanny(currentImg, 50.0, 150.0);
             
-            if (!outputs.isEmpty()) outputs[0]->displayImage(result);
+            displayOutput(result);
         }
     }
 
@@ -64,14 +153,14 @@ void AppController::handleApply() {
         // Use exact function name for visualization
         cv::Mat plot = HistogramTools::plotHistogram(hist, cdf, cv::Scalar(255, 255, 255));
         
-        if (!outputs.isEmpty()) outputs[0]->displayImage(plot);
+        displayOutput(plot);
     }
 
     // --- TASK 7: ENTROPY ---
     else if (taskIndex == 7) {
         double entropy = EntropyCalculator::calculate(currentImg);
         cv::Mat histGraph = EntropyCalculator::plotHistogram(currentImg);
-        if (!outputs.isEmpty()) outputs[0]->displayImage(histGraph);
+        displayOutput(histGraph);
 
         QString explanation = QString("<h3>Entropy Analysis</h3><hr><p><b>Value:</b> %1</p>").arg(entropy, 0, 'f', 4);
         mainWindow->getInfoSidebar()->setHtml(explanation);
@@ -80,11 +169,11 @@ void AppController::handleApply() {
     // --- TASK 8: COLOR TO GRAY & RGB HISTOGRAMS ---
     else if (taskIndex == 8) {
         // 1. Transform and display Grayscale image
-        cv::Mat grayResult = ColorTransformations::convertToGray(currentImg);
-        if (!outputs.isEmpty()) outputs[0]->displayImage(grayResult);
+        cv::Mat grayResult = toGray(currentImg);
+        displayOutput(grayResult);
 
         // 2. Open pop-up windows for R, G, and B distributions
-        ColorTransformations::analyzeRGB(currentImg);
+        ColorTransformations::analyzeRGB(originalImg);
     }
 
     // --- TASK 9: FREQUENCY FILTERS ---
@@ -97,20 +186,31 @@ void AppController::handleApply() {
         if (ok && !item.isEmpty()) {
             FrequencyFilters::FilterType type = (item == "Low Pass") ? FrequencyFilters::LOW_PASS : FrequencyFilters::HIGH_PASS;
             cv::Mat result = FrequencyFilters::applyFilter(currentImg, 50.0f, type);
-            if (!outputs.isEmpty()) outputs[0]->displayImage(result);
+            displayOutput(result);
         }
     }
 
     // --- TASK 10: HYBRID IMAGES ---
     else if (taskIndex == 10) {
         if (inputs.size() >= 2) {
-            cv::Mat img2 = inputs[1]->getImage();
+            cv::Mat img2 = toGray(inputs[1]->getImage());
             if (!currentImg.empty() && !img2.empty()) {
                 cv::Mat result = HybridImageBuilder::createHybrid(currentImg, img2, 15);
-                if (!outputs.isEmpty()) outputs[0]->displayImage(result);
+                displayOutput(result);
             }
         }
     }
+}
+
+void AppController::handleSave() {
+    int taskIndex = mainWindow->getTopTaskBar()->getSelectedOperation();
+    auto& outputs = mainWindow->getOutputPanels();
+    if (outputs.isEmpty()) return;
+
+    cv::Mat outputImage = outputs[0]->getImage();
+    if (outputImage.empty()) return;
+
+    saveOutputImage(outputImage, taskIndex);
 }
 
 void AppController::handleClear() {

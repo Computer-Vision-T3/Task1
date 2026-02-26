@@ -6,8 +6,9 @@ cv::Mat NoiseGenerator::addGaussianNoise(const cv::Mat& input, double stddev)
     cv::randn(noise, 0, stddev);
 
     cv::Mat output;
-    input.convertTo(output, CV_16SC3);
-    noise.convertTo(noise, CV_16SC3);
+    const int signedType = CV_MAKETYPE(CV_16S, input.channels());
+    input.convertTo(output, signedType);
+    noise.convertTo(noise, signedType);
 
     cv::addWeighted(output, 1.0, noise, 1.0, 0, output);
     output.convertTo(output, input.type());
@@ -36,10 +37,14 @@ cv::Mat NoiseGenerator::addSaltPepperNoise(const cv::Mat& input, double amount)
         int row = rand() % input.rows;
         int col = rand() % input.cols;
 
-        if (rand() % 2)
-            output.at<cv::Vec3b>(row, col) = cv::Vec3b(255,255,255);
-        else
-            output.at<cv::Vec3b>(row, col) = cv::Vec3b(0,0,0);
+        if (output.channels() == 1) {
+            output.at<uchar>(row, col) = (rand() % 2) ? 255 : 0;
+        } else {
+            if (rand() % 2)
+                output.at<cv::Vec3b>(row, col) = cv::Vec3b(255,255,255);
+            else
+                output.at<cv::Vec3b>(row, col) = cv::Vec3b(0,0,0);
+        }
     }
 
     return output;

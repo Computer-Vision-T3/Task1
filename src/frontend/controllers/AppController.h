@@ -13,6 +13,7 @@ public:
 private slots:
     void handleTaskChange(int taskIndex);
     void handleApply();
+    void handleSave();
     void handleClear();
 
 private:

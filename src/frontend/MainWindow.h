@@ -7,7 +7,6 @@
 #include <QTextBrowser> // <-- Added for the sidebar
 #include "components/TopTaskBar.h"
 #include "components/ImagePanel.h"
-
 class AppController; // Forward declaration
 
 QT_BEGIN_NAMESPACE
@@ -26,7 +25,6 @@ public:
     QList<ImagePanel*>& getInputPanels() { return inputPanels; }
     QList<ImagePanel*>& getOutputPanels() { return outputPanels; }
     QTextBrowser* getInfoSidebar() { return infoSidebar; } // <-- Getter for the sidebar
-
     // Logic to change UI based on task
     void updateLayoutForTask(int taskIndex);
 
@@ -42,7 +40,6 @@ private:
 
     QList<ImagePanel*> inputPanels;
     QList<ImagePanel*> outputPanels;
-
     void setupCustomLayout();
     void rebuildPanels(int numInputs, int numOutputs, QStringList inTitles, QStringList outTitles);
 };
