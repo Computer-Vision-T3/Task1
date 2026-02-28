@@ -142,18 +142,25 @@ cv::Mat ImageEqualizer::equalize_rgb(const cv::Mat& image) {
     std::vector<cv::Mat> channels;
     cv::split(image, channels);
 
-    auto buildLUT = [](const cv::Mat& cdf) -> cv::Mat {
-        cv::Mat lut(1, 256, CV_8U);
-        float cdfMax = 0;
-        for (int i = 0; i < 256; i++)
-            if (cdf.at<float>(i) > cdfMax) cdfMax = cdf.at<float>(i);
+    
+auto buildLUT = [](const cv::Mat& cdf) -> cv::Mat {
+    cv::Mat lut(1, 256, CV_8U);
+    float cdfMin = 0;
+    for (int i = 0; i < 256; i++) {
+        if (cdf.at<float>(i) > 0) { cdfMin = cdf.at<float>(i); break; }
+    }
+    float cdfMax = cdf.at<float>(255);
+    if (cdfMax == cdfMin)
+        return cv::Mat(1, 256, CV_8U, cv::Scalar(0));
 
-        for (int i = 0; i < 256; i++) {
-            float val = cdf.at<float>(i);
-            lut.at<uchar>(i) = (val == 0) ? 0 : cv::saturate_cast<uchar>(val * 255.0f / cdfMax);
-        }
-        return lut;
-    };
+    for (int i = 0; i < 256; i++) {
+        float val = cdf.at<float>(i);
+        lut.at<uchar>(i) = (val == 0) ? 0 :
+            cv::saturate_cast<uchar>((val - cdfMin) * 255.0f / (cdfMax - cdfMin));
+    }
+    return lut;
+};
+ 
 
     cv::Mat lut_blue  = buildLUT(blue_cdf_mat);
     cv::Mat lut_green = buildLUT(green_cdf_mat);
