@@ -8,11 +8,9 @@
 #include "../../backend/Module5_FrequencyAndHybrid/FrequencyFilters.h" 
 #include "../../backend/Module3_HistogramsAndColor/HistogramTools.h"
 #include "../../backend/Module3_HistogramsAndColor/ColorTransformations.h"
-#include "../../backend/Module3_HistogramsAndColor/ImageEqualizer.h"
-#include "../../backend/Module3_HistogramsAndColor/ImageNormalizer.h"
-
-#include <QInputDialog> 
-
+#include "../../backend/Module4_Enhancement/ImageEqualizer.h"
+#include "../../backend/Module4_Enhancement/ImageNormalizer.h"
+ 
 AppController::AppController(MainWindow* window, QObject *parent)
     : QObject(parent), mainWindow(window) {
     connect(mainWindow->getTopTaskBar(), &TopTaskBar::taskChanged, this, &AppController::handleTaskChange);
