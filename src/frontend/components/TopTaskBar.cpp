@@ -13,7 +13,7 @@ TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
     operationSelector = new QComboBox(this);
     operationSelector->addItems({
         "1. Add Noise", "2. Low Pass Filter", "3. Edge Detection", "4. Histogram",
-        "5. Equalization", "6. Normalization", "7. Entropy", "8. Color Transform",
+        "5. Normalization", "6. Equalization", "7. Entropy", "8. Color Transform",
         "9. Freq Filters", "10. Hybrid Images"
     });
     
@@ -45,4 +45,5 @@ TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
 
 int TopTaskBar::getSelectedOperation() const {
     return operationSelector->currentIndex() + 1;
+
 }
