@@ -117,6 +117,8 @@ cv::Mat ImageEqualizer::equalize_grayScale(const cv::Mat& image) {
         }
     }
     float cdfMax = cdf.at<float>(255);
+    if (cdfMax == cdfMin)
+    return image.clone();
 
     cv::Mat lut(1, 256, CV_8U);
     for (int i = 0; i < 256; i++) {
