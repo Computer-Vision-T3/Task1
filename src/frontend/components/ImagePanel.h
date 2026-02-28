@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QString>
+#include <QResizeEvent>
 #include <opencv2/opencv.hpp>
 
 class ImagePanel : public QWidget {
@@ -11,22 +12,25 @@ class ImagePanel : public QWidget {
 public:
     explicit ImagePanel(const QString& title, bool isInput, QWidget *parent = nullptr);
 
-    // ======= ADD THESE MISSING FUNCTIONS =======
-    cv::Mat getImage() const;                // Returns the current image
-    void displayImage(const cv::Mat& img);   // Shows an image in the panel
-    void clear();                            // Resets the panel
-    // ===========================================
+    cv::Mat getImage() const;
+    void displayImage(const cv::Mat& img);
+    void clear();
+
+protected:
+    // This captures window maximize/resize to fix the image scaling bug
+    void resizeEvent(QResizeEvent *event) override;
 
 private slots:
-    void handleLoadImage(); // Connected to the "Load" button
+    void handleLoadImage();
 
 private:
     QLabel* imageDisplay;
-    cv::Mat currentImage; // Stores the actual OpenCV data
+    cv::Mat currentImage; 
+    QPixmap currentPixmap; // Stores the high-res Qt image natively
     bool isInput;
     
-    // Helper to convert OpenCV to Qt format
     QPixmap cvMatToPixmap(const cv::Mat& img);
+    void updateDisplay(); // Handles the dynamic smooth scaling
 };
 
 #endif

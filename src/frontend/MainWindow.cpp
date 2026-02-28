@@ -7,10 +7,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->setupUi(this);
     setupCustomLayout();
     
-    // Initialize controller AFTER setupCustomLayout
     appController = new AppController(this);
-    
-    // Initial state
     rebuildPanels(1, 1, {"Input"}, {"Output"});
 }
 
@@ -19,14 +16,14 @@ MainWindow::~MainWindow() { delete ui; }
 void MainWindow::setupCustomLayout() {
     QWidget* centralWidget = new QWidget(this);
     QVBoxLayout* mainLayout = new QVBoxLayout(centralWidget);
-    mainLayout->setContentsMargins(5, 5, 5, 5); // Tighten the edges
+    mainLayout->setContentsMargins(5, 5, 5, 5); 
     mainLayout->setSpacing(5);
 
     taskBar = new TopTaskBar(this);
     mainLayout->addWidget(taskBar);
     
     mainSplitter = new QSplitter(Qt::Horizontal, this);
-    mainSplitter->setHandleWidth(1); // Thin line between left and right
+    mainSplitter->setHandleWidth(2); 
 
     leftSplitter = new QSplitter(Qt::Vertical, this);
     rightSplitter = new QSplitter(Qt::Vertical, this);
@@ -34,42 +31,43 @@ void MainWindow::setupCustomLayout() {
     mainSplitter->addWidget(leftSplitter);
     mainSplitter->addWidget(rightSplitter);
 
-    // --- NEW SIDEBAR SETUP ---
     infoSidebar = new QTextBrowser(this);
     infoSidebar->setStyleSheet("background-color: #f8f9fa; padding: 15px; border-left: 1px solid #ccc; font-size: 14px;");
-    infoSidebar->hide(); // Hidden by default
+    infoSidebar->hide(); 
     mainSplitter->addWidget(infoSidebar);
     
-    // Set initial proportions
-    mainSplitter->setStretchFactor(0, 2); // Left 
-    mainSplitter->setStretchFactor(1, 2); // Right
-    mainSplitter->setStretchFactor(2, 1); // Sidebar (takes up less space)
+    mainSplitter->setStretchFactor(0, 2); 
+    mainSplitter->setStretchFactor(1, 2); 
+    mainSplitter->setStretchFactor(2, 1); 
 
     mainLayout->addWidget(mainSplitter, 1);
     setCentralWidget(centralWidget);
 } 
 
 void MainWindow::updateLayoutForTask(int taskIndex) {
-    // Hide the sidebar by default when switching tasks
     if (infoSidebar) infoSidebar->hide();
 
-    // Index 10: Hybrid (2 Inputs, 1 Output)
-    if (taskIndex == 10) {
-        rebuildPanels(2, 1, {"Image (Low Freq)", "Image (High Freq)"}, {"Hybrid Result"});
-    } 
-    // Index 9: Frequency Filters (1 Input, 1 Output)
-    else if (taskIndex == 9) {
-        rebuildPanels(1, 1, {"Input Image"}, {"Filtered Result"});
+    // 1. RESCUE THE CURRENT IMAGE BEFORE REBUILDING
+    cv::Mat savedInput;
+    if (!inputPanels.isEmpty() && !inputPanels[0]->getImage().empty()) {
+        savedInput = inputPanels[0]->getImage().clone();
     }
-    // Index 7: Entropy (1 Input, 1 Output, 1 Sidebar)
-    else if (taskIndex == 7) {
+
+    // 2. REBUILD UI BASED ON TASK
+    if (taskIndex == 3) { rebuildPanels(1, 3, {"Input"}, {"X Gradient", "Y Gradient", "Final Magnitude"}); } 
+    else if (taskIndex == 8) { rebuildPanels(1, 4, {"Input RGB"}, {"Grayscale", "Blue Hist", "Green Hist", "Red Hist"}); }
+    else if (taskIndex == 10) { rebuildPanels(2, 1, {"Image (Low Freq)", "Image (High Freq)"}, {"Hybrid Result"}); } 
+    else if (taskIndex == 9) { rebuildPanels(1, 1, {"Input Image"}, {"Filtered Result"}); }
+    else if (taskIndex == 7) { 
         rebuildPanels(1, 1, {"Input Image"}, {"Pixel Distribution Graph"});
-        infoSidebar->show(); // Reveal the sidebar
+        infoSidebar->show(); 
         infoSidebar->setHtml("<h3>Entropy Analysis</h3><p>Upload an image and hit apply to see the results.</p>");
     }
-    // Default (1 Input, 1 Output)
-    else {
-        rebuildPanels(1, 1, {"Input"}, {"Output"});
+    else { rebuildPanels(1, 1, {"Input"}, {"Output"}); }
+
+    // 3. RESTORE THE RESCUED IMAGE
+    if (!savedInput.empty() && !inputPanels.isEmpty()) {
+        inputPanels[0]->displayImage(savedInput);
     }
 }
 

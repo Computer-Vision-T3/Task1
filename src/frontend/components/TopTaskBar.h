@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QComboBox>
 #include <QPushButton>
+#include <QLabel>
 #include "ParameterBox.h"
 
 class TopTaskBar : public QWidget {
@@ -18,7 +19,7 @@ signals:
     void applyRequested();
     void saveRequested();
     void clearRequested();
-    void taskChanged(int taskIndex); // <-- This is the missing piece!
+    void taskChanged(int taskIndex);
 
 private:
     QComboBox* operationSelector;
@@ -26,6 +27,9 @@ private:
     QPushButton* saveBtn;
     QPushButton* clearBtn;
     ParameterBox* paramBox;
+    QLabel* helpBubble; // The new dynamic help bubble
+
+    void updateHelpText(int taskIndex);
 };
 
 #endif // TOPTASKBAR_H
