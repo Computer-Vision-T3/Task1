@@ -5,6 +5,10 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QLabel>
+#include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QTimer>
+#include <QSizePolicy>
 #include "ParameterBox.h"
 
 class TopTaskBar : public QWidget {
@@ -14,6 +18,8 @@ public:
     explicit TopTaskBar(QWidget *parent = nullptr);
     int getSelectedOperation() const;
     ParameterBox* getParameterBox() const { return paramBox; }
+    void setStatus(const QString& msg, bool isSuccess = true);
+    void setProcessing(bool processing);
 
 signals:
     void applyRequested();
@@ -22,12 +28,19 @@ signals:
     void taskChanged(int taskIndex);
 
 private:
-    QComboBox* operationSelector;
-    QPushButton* applyBtn;
-    QPushButton* saveBtn;
-    QPushButton* clearBtn;
+    // Row 1
+    QComboBox*    operationSelector;
+    QLabel*       helpBubble;
     ParameterBox* paramBox;
-    QLabel* helpBubble; // The new dynamic help bubble
+
+    // Row 2
+    QLabel*       taskDescLabel;
+    QLabel*       statusLabel;
+    QPushButton*  clearBtn;
+    QPushButton*  saveBtn;
+    QPushButton*  applyBtn;
+
+    QTimer*       statusTimer;
 
     void updateHelpText(int taskIndex);
 };

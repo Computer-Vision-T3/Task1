@@ -7,6 +7,7 @@
 #include <QComboBox>
 #include <QSlider>
 #include <QSpinBox>
+#include <QFrame>
 
 class ParameterBox : public QWidget {
     Q_OBJECT
@@ -15,14 +16,20 @@ public:
     explicit ParameterBox(QWidget *parent = nullptr);
 
 public slots:
-    // This receives the signal when the user changes the task dropdown
     void updateParametersForTask(int taskIndex);
 
 private:
     QHBoxLayout* layout;
-    
-    // Helper to wipe the old parameters off the screen
     void clearLayout();
+
+    // Helper builders
+    QWidget* buildLabeledCombo(const QString& label, const QString& objName,
+                                const QStringList& items, const QString& tooltip = "");
+    QWidget* buildLabeledSlider(const QString& label, const QString& objName,
+                                 int min, int max, int value);
+    QWidget* buildLabeledSpin(const QString& label, const QString& objName,
+                               int min, int max, int step, int value);
+    QFrame* buildSeparator();
 };
 
 #endif // PARAMETERBOX_H

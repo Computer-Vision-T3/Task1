@@ -1,9 +1,11 @@
 #include "ParameterBox.h"
+#include <QFrame>
+#include <QTimer>
 
 ParameterBox::ParameterBox(QWidget *parent) : QWidget(parent) {
     layout = new QHBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0); 
-    layout->setSpacing(8);
+    layout->setContentsMargins(12, 6, 12, 6);
+    layout->setSpacing(6);
 }
 
 void ParameterBox::clearLayout() {
@@ -14,126 +16,180 @@ void ParameterBox::clearLayout() {
     }
 }
 
+QFrame* ParameterBox::buildSeparator() {
+    QFrame* sep = new QFrame(this);
+    sep->setObjectName("vertDivider");
+    sep->setFrameShape(QFrame::VLine);
+    sep->setFixedWidth(1);
+    sep->setFixedHeight(28);
+    return sep;
+}
+
+QWidget* ParameterBox::buildLabeledCombo(const QString& label, const QString& objName,
+                                          const QStringList& items, const QString& tooltip) {
+    QWidget* container = new QWidget(this);
+    QHBoxLayout* cl = new QHBoxLayout(container);
+    cl->setContentsMargins(0, 0, 0, 0);
+    cl->setSpacing(8);
+
+    QLabel* lbl = new QLabel(label, container);
+    lbl->setObjectName("paramLabel");
+    lbl->setFixedWidth(label.length() * 7 + 4);
+
+    QComboBox* combo = new QComboBox(container);
+    combo->setObjectName(objName);
+    combo->addItems(items);
+    combo->setMinimumWidth(140);
+    if (!tooltip.isEmpty()) combo->setToolTip(tooltip);
+
+    cl->addWidget(lbl);
+    cl->addWidget(combo);
+    return container;
+}
+
+QWidget* ParameterBox::buildLabeledSlider(const QString& label, const QString& objName,
+                                           int min, int max, int value) {
+    QWidget* container = new QWidget(this);
+    QHBoxLayout* cl = new QHBoxLayout(container);
+    cl->setContentsMargins(0, 0, 0, 0);
+    cl->setSpacing(8);
+
+    QLabel* lbl = new QLabel(label, container);
+    lbl->setObjectName("paramLabel");
+    lbl->setFixedWidth(label.length() * 7 + 4);
+
+    QSlider* slider = new QSlider(Qt::Horizontal, container);
+    slider->setObjectName(objName);
+    slider->setRange(min, max);
+    slider->setValue(value);
+    slider->setFixedWidth(130);
+
+    QLabel* valLabel = new QLabel(QString::number(value), container);
+    valLabel->setObjectName("valueLabel");
+    valLabel->setFixedWidth(32);
+    valLabel->setAlignment(Qt::AlignCenter);
+
+    // Live value display
+    QObject::connect(slider, &QSlider::valueChanged, [valLabel](int v) {
+        valLabel->setText(QString::number(v));
+    });
+
+    cl->addWidget(lbl);
+    cl->addWidget(slider);
+    cl->addWidget(valLabel);
+    return container;
+}
+
+QWidget* ParameterBox::buildLabeledSpin(const QString& label, const QString& objName,
+                                         int min, int max, int step, int value) {
+    QWidget* container = new QWidget(this);
+    QHBoxLayout* cl = new QHBoxLayout(container);
+    cl->setContentsMargins(0, 0, 0, 0);
+    cl->setSpacing(8);
+
+    QLabel* lbl = new QLabel(label, container);
+    lbl->setObjectName("paramLabel");
+    lbl->setFixedWidth(label.length() * 7 + 4);
+
+    QSpinBox* spin = new QSpinBox(container);
+    spin->setObjectName(objName);
+    spin->setRange(min, max);
+    spin->setSingleStep(step);
+    spin->setValue(value);
+    spin->setFixedWidth(80);
+
+    cl->addWidget(lbl);
+    cl->addWidget(spin);
+    return container;
+}
+
 void ParameterBox::updateParametersForTask(int taskIndex) {
     clearLayout();
 
     switch (taskIndex) {
-        case 0: { // 1. Add Noise
-            layout->addWidget(new QLabel("Noise Type:", this));
-            QComboBox* noiseType = new QComboBox(this);
-            noiseType->setObjectName("noiseTypeCombo");
-            noiseType->addItems({"Uniform", "Gaussian", "Salt & Pepper"});
-            layout->addWidget(noiseType);
+        case 0: { // Task 1: Add Noise
+            layout->addWidget(buildLabeledCombo(
+                "Type", "noiseTypeCombo",
+                {"Uniform", "Gaussian", "Salt & Pepper"},
+                "Uniform: flat random  |  Gaussian: bell-curve (ISO simulation)  |  Salt & Pepper: dead pixels"
+            ));
+            layout->addWidget(buildSeparator());
+            layout->addWidget(buildLabeledSlider("Intensity", "noiseIntensitySlider", 0, 100, 20));
 
-            QLabel* localBubble = new QLabel("?", this);
-            localBubble->setObjectName("helpBubble");
-            layout->addWidget(localBubble);
+            // Dynamic tooltip hint
+            QLabel* hint = new QLabel("", this);
+            hint->setStyleSheet("font-size: 10px; color: #B8B0A6; font-style: italic;");
+            hint->setObjectName("noiseHint");
 
-            auto updateNoiseHelp = [localBubble](const QString& text) {
-                if (text == "Uniform") localBubble->setToolTip("Applies random static evenly across the image.");
-                else if (text == "Gaussian") localBubble->setToolTip("Applies bell-curve noise, simulating low-light camera ISO static.");
-                else if (text == "Salt & Pepper") localBubble->setToolTip("Randomly turns pixels pure white or pure black (data corruption).");
-            };
-            connect(noiseType, &QComboBox::currentTextChanged, updateNoiseHelp);
-            updateNoiseHelp(noiseType->currentText());
-
-            layout->addWidget(new QLabel("Intensity:", this));
-            QSlider* intensitySlider = new QSlider(Qt::Horizontal, this);
-            intensitySlider->setRange(0, 100);
-            intensitySlider->setObjectName("noiseIntensitySlider");
-            intensitySlider->setValue(20);
-            layout->addWidget(intensitySlider);
+            auto* combo = this->findChild<QComboBox*>("noiseTypeCombo");
+            if (combo) {
+                auto updateHint = [hint](const QString& t) {
+                    if (t == "Uniform") hint->setText("Adds uniform random noise");
+                    else if (t == "Gaussian") hint->setText("σ = intensity / 2");
+                    else hint->setText("fraction = intensity / 100");
+                };
+                QObject::connect(combo, &QComboBox::currentTextChanged, updateHint);
+                updateHint(combo->currentText());
+            }
+            layout->addWidget(hint);
+            layout->addStretch();
             break;
         }
-        case 1: { // 2. Low Pass Filter
-            layout->addWidget(new QLabel("Filter:", this));
-            QComboBox* filterType = new QComboBox(this);
-            filterType->setObjectName("filterTypeCombo");
-            filterType->addItems({"Average", "Gaussian", "Median"});
-            layout->addWidget(filterType);
+        case 1: { // Task 2: Low Pass Filters
+            layout->addWidget(buildLabeledCombo(
+                "Filter", "filterTypeCombo",
+                {"Average", "Gaussian", "Median"},
+                "Average: mean of neighborhood  |  Gaussian: weighted center-biased  |  Median: best for salt & pepper"
+            ));
+            layout->addWidget(buildSeparator());
+            layout->addWidget(buildLabeledSpin("Kernel", "kernelSizeSpin", 3, 31, 2, 3));
 
-            QLabel* localBubble = new QLabel("?", this);
-            localBubble->setObjectName("helpBubble");
-            layout->addWidget(localBubble);
-
-            auto updateFilterHelp = [localBubble](const QString& text) {
-                if (text == "Average") localBubble->setToolTip("A simple blur. Replaces each pixel with the mean of its neighbors.");
-                else if (text == "Gaussian") localBubble->setToolTip("A weighted blur that keeps the center more in focus. Preserves edges better.");
-                else if (text == "Median") localBubble->setToolTip("Replaces the pixel with the median. The ultimate destroyer of Salt & Pepper noise!");
-            };
-            connect(filterType, &QComboBox::currentTextChanged, updateFilterHelp);
-            updateFilterHelp(filterType->currentText());
-
-            layout->addWidget(new QLabel("Kernel Size:", this));
-            QSpinBox* kernelSize = new QSpinBox(this);
-            kernelSize->setObjectName("kernelSizeSpin");
-            kernelSize->setRange(3, 31);
-            kernelSize->setSingleStep(2); 
-            kernelSize->setValue(3); 
-            layout->addWidget(kernelSize);
+            QLabel* hint = new QLabel("Larger kernel → stronger blur", this);
+            hint->setStyleSheet("font-size: 10px; color: #B8B0A6; font-style: italic;");
+            layout->addWidget(hint);
+            layout->addStretch();
             break;
         }
-        case 2: { // 3. Edge Detection
-            layout->addWidget(new QLabel("Mask:", this));
-            QComboBox* maskType = new QComboBox(this);
-            maskType->setObjectName("maskTypeCombo");
-            maskType->addItems({"Sobel", "Roberts", "Prewitt", "Canny"});
-            layout->addWidget(maskType);
+        case 2: { // Task 3: Edge Detection
+            layout->addWidget(buildLabeledCombo(
+                "Detector", "maskTypeCombo",
+                {"Sobel", "Roberts", "Prewitt", "Canny"},
+                "Sobel: standard 3×3  |  Roberts: diagonal 2×2  |  Prewitt: uniform weights  |  Canny: multi-stage, 1px edges"
+            ));
 
-            QLabel* localBubble = new QLabel("?", this);
-            localBubble->setObjectName("helpBubble");
-            layout->addWidget(localBubble);
-
-            auto updateEdgeHelp = [localBubble](const QString& text) {
-                if (text == "Sobel") localBubble->setToolTip("Standard 3x3 mask. Highlights thick edges and ignores light noise.");
-                else if (text == "Roberts") localBubble->setToolTip("Tiny 2x2 diagonal mask. Finds incredibly thin edges but is highly vulnerable to noise.");
-                else if (text == "Prewitt") localBubble->setToolTip("Similar to Sobel, but doesn't place extra weight on the center pixel.");
-                else if (text == "Canny") localBubble->setToolTip("The industry standard. Multi-stage algorithm that outputs perfect, 1-pixel thin continuous lines.");
-            };
-            connect(maskType, &QComboBox::currentTextChanged, updateEdgeHelp);
-            updateEdgeHelp(maskType->currentText());
+            QLabel* hint = new QLabel("Outputs: X Gradient · Y Gradient · Magnitude", this);
+            hint->setStyleSheet("font-size: 10px; color: #B8B0A6; font-style: italic;");
+            layout->addWidget(hint);
+            layout->addStretch();
             break;
         }
-        case 5: { // 6. Equalization
-            layout->addWidget(new QLabel("Mode:", this));
-            QComboBox* eqMode = new QComboBox(this);
-            eqMode->setObjectName("eqModeCombo");
-            eqMode->addItems({"Grayscale Equalization", "RGB Equalization"});
-            layout->addWidget(eqMode);
-
-            QLabel* localBubble = new QLabel("?", this);
-            localBubble->setObjectName("helpBubble");
-            layout->addWidget(localBubble);
-
-            auto updateEqHelp = [localBubble](const QString& text) {
-                if (text == "Grayscale Equalization") localBubble->setToolTip("Converts to black & white, then perfectly distributes the contrast.");
-                else if (text == "RGB Equalization") localBubble->setToolTip("Calculates Cumulative Distribution for Red, Green, and Blue separately. Can cause crazy color shifts!");
-            };
-            connect(eqMode, &QComboBox::currentTextChanged, updateEqHelp);
-            updateEqHelp(eqMode->currentText());
+        case 5: { // Task 6: Equalization
+            layout->addWidget(buildLabeledCombo(
+                "Mode", "eqModeCombo",
+                {"Grayscale Equalization", "RGB Equalization"},
+                "Grayscale: luminance CDF mapping  |  RGB: per-channel equalization (may shift hues)"
+            ));
+            layout->addStretch();
             break;
         }
-        case 8: { // 9. Frequency Filters
-            layout->addWidget(new QLabel("Filter Type:", this));
-            QComboBox* freqType = new QComboBox(this);
-            freqType->setObjectName("freqTypeCombo");
-            freqType->addItems({"Low Pass", "High Pass"});
-            layout->addWidget(freqType);
+        case 8: { // Task 9: Frequency Filters
+            layout->addWidget(buildLabeledCombo(
+                "Type", "freqTypeCombo",
+                {"Low Pass", "High Pass"},
+                "Low pass: smoothing/blur  |  High pass: edge extraction"
+            ));
 
-            QLabel* localBubble = new QLabel("?", this);
-            localBubble->setObjectName("helpBubble");
-            layout->addWidget(localBubble);
-
-            auto updateFreqHelp = [localBubble](const QString& text) {
-                if (text == "Low Pass") localBubble->setToolTip("Blocks high frequencies (sharp edges). The result is a blurry image.");
-                else if (text == "High Pass") localBubble->setToolTip("Blocks low frequencies (flat colors). The result is a black canvas with sharp outlines.");
-            };
-            connect(freqType, &QComboBox::currentTextChanged, updateFreqHelp);
-            updateFreqHelp(freqType->currentText());
+            QLabel* hint = new QLabel("Gaussian Fourier filter  ·  D₀ = 50", this);
+            hint->setStyleSheet("font-size: 10px; color: #B8B0A6; font-style: italic;");
+            layout->addWidget(hint);
+            layout->addStretch();
             break;
         }
         default: {
-            layout->addWidget(new QLabel("Ready to Apply.", this));
+            QLabel* hint = new QLabel("No parameters required", this);
+            hint->setStyleSheet("font-size: 12px; color: #C4BDB4; font-style: italic;");
+            layout->addWidget(hint);
+            layout->addStretch();
             break;
         }
     }
