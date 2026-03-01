@@ -76,8 +76,8 @@ int main(int argc, char *argv[]) {
         QWidget#paramStrip {
             background-color: #FAFAF8;
             border-bottom: 1px solid #EDEAE4;
-            min-height: 90px;
-            max-height: 90px;
+            min-height: 117px;
+            max-height: 117px;
         }
 
         /* ── Canvas Area ── */
@@ -134,20 +134,28 @@ int main(int argc, char *argv[]) {
 
         /* ── Buttons ── */
         QPushButton#primaryBtn {
-            background-color: #5B4FCF;
+            background-color: #7C3AED;
             color: #FFFFFF;
-            border: none;
+            border: 1px solid #6D28D9;
             border-radius: 10px;
-            padding: 9px 22px;
-            font-weight: 700;
+            padding: 9px 24px;
+            font-weight: 800;
             font-size: 13px;
             letter-spacing: 0.02em;
+            min-height: 34px;
         }
         QPushButton#primaryBtn:hover {
-            background-color: #4D42B8;
+            background-color: #8B5CF6;
+            border-color: #7C3AED;
         }
         QPushButton#primaryBtn:pressed {
-            background-color: #3D348F;
+            background-color: #6D28D9;
+            border-color: #5B21B6;
+        }
+        QPushButton#primaryBtn:disabled {
+            background-color: #C9C3EF;
+            color: #FDFCFA;
+            border-color: #C9C3EF;
         }
 
         QPushButton#secondaryBtn {
@@ -196,19 +204,23 @@ int main(int argc, char *argv[]) {
         }
 
         QPushButton#loadBtn {
-            background-color: #F5F3EF;
-            color: #7A7268;
-            border: 1.5px dashed #D4CEC6;
+            background-color: #F4F1FF;
+            color: #4D42B8;
+            border: 1.5px solid #BDB4F3;
             border-radius: 10px;
             padding: 10px 16px;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 12px;
+            min-height: 28px;
         }
         QPushButton#loadBtn:hover {
-            background-color: #EDE8FF;
-            color: #5B4FCF;
-            border-color: #9B92E8;
-            border-style: solid;
+            background-color: #E8E2FF;
+            color: #3D348F;
+            border-color: #8E84E8;
+        }
+        QPushButton#loadBtn:pressed {
+            background-color: #DDD5FF;
+            color: #2F2870;
         }
 
         /* ── Dropdowns ── */
@@ -248,11 +260,22 @@ int main(int argc, char *argv[]) {
         QComboBox QAbstractItemView {
             background-color: #FFFFFF;
             border: 1.5px solid #DDD8D2;
-            border-radius: 10px;
-            padding: 6px;
+            border-top-left-radius: 0px;
+            border-top-right-radius: 0px;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            padding: 0px;
             selection-background-color: #EDE8FF;
             selection-color: #5B4FCF;
             outline: none;
+        }
+        QComboBox QAbstractItemView:focus {
+            outline: 0;
+        }
+        QComboBox QAbstractItemView::viewport {
+            background-color: #FFFFFF;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
         }
         QComboBox QAbstractItemView::item {
             padding: 8px 12px;
@@ -413,13 +436,13 @@ int main(int argc, char *argv[]) {
 
         /* ── Tooltips ── */
         QToolTip {
-            background-color: #2C2825;
-            color: #F5F3EF;
-            border: none;
+            background-color: #FDFCFA;
+            color: #2C2825;
+            border: 1px solid #CFC7F4;
             border-radius: 8px;
-            padding: 8px 12px;
+            padding: 9px 12px;
             font-size: 12px;
-            font-weight: 500;
+            font-weight: 600;
             opacity: 240;
         }
 

@@ -2,11 +2,11 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QFrame>
+#include <QAbstractItemView>
 
 TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
     setObjectName("paramStrip");
-    setFixedHeight(90);   // Two rows: 44px + 1px divider + 44px
-
+  setFixedHeight(117);   // Two rows: 66px + 1px divider + 50px
     statusTimer = new QTimer(this);
     statusTimer->setSingleShot(true);
 
@@ -18,20 +18,25 @@ TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
     //  ROW 1 — Operation + Params
     // ════════════════════════════
     QWidget* row1 = new QWidget(this);
-    row1->setFixedHeight(44);
+    row1->setFixedHeight(66);
     row1->setStyleSheet("background-color: #FAFAF8;");
     QHBoxLayout* r1 = new QHBoxLayout(row1);
-    r1->setContentsMargins(16, 0, 16, 0);
-    r1->setSpacing(8);
+    r1->setContentsMargins(10, 6, 10, 6);
+    r1->setSpacing(6);
+    r1->setAlignment(Qt::AlignVCenter);
 
     QLabel* opLabel = new QLabel("Operation", row1);
     opLabel->setObjectName("paramLabel");
     opLabel->setFixedWidth(72);
+    opLabel->setFixedHeight(38);
+    opLabel->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
 
     operationSelector = new QComboBox(row1);
     operationSelector->setObjectName("operationSelector");
     operationSelector->setFixedWidth(178);
-    operationSelector->setFixedHeight(32);
+    operationSelector->setFixedHeight(38);
+    operationSelector->setMaxVisibleItems(10);
+    operationSelector->view()->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     operationSelector->addItems({
         "1  \xc2\xb7  Add Noise",
         "2  \xc2\xb7  Low Pass Filter",
@@ -49,7 +54,7 @@ TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
     helpBubble->setObjectName("helpBubble");
     helpBubble->setAlignment(Qt::AlignCenter);
     helpBubble->setCursor(Qt::WhatsThisCursor);
-    helpBubble->setFixedSize(24, 24);
+    helpBubble->setFixedSize(30, 30);
     helpBubble->setStyleSheet(
         "background-color:#EDE8FF; color:#5B4FCF;"
         "border-radius:12px; font-weight:800; font-size:13px; padding:0px;"
@@ -57,10 +62,11 @@ TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
 
     QFrame* div1 = new QFrame(row1);
     div1->setFrameShape(QFrame::VLine);
-    div1->setFixedSize(1, 26);
+    div1->setFixedSize(1, 34);
     div1->setStyleSheet("background-color:#DDD8D2; border:none;");
 
     paramBox = new ParameterBox(row1);
+    paramBox->setMinimumHeight(38);
     paramBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
     r1->addWidget(opLabel);
@@ -81,7 +87,7 @@ TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
     //  ROW 2 — Desc + Status + Buttons
     // ════════════════════════════
     QWidget* row2 = new QWidget(this);
-    row2->setFixedHeight(44);
+    row2->setFixedHeight(50);
     row2->setStyleSheet("background-color:#F7F5F2;");
     QHBoxLayout* r2 = new QHBoxLayout(row2);
     r2->setContentsMargins(16, 0, 16, 0);
@@ -111,19 +117,24 @@ TopTaskBar::TopTaskBar(QWidget *parent) : QWidget(parent) {
     clearBtn = new QPushButton("Clear", row2);
     clearBtn->setObjectName("ghostBtn");
     clearBtn->setCursor(Qt::PointingHandCursor);
-    clearBtn->setFixedSize(72, 30);
+    clearBtn->setFixedSize(76, 32);
     clearBtn->setToolTip("Clear outputs and return to original");
 
     saveBtn = new QPushButton("Save", row2);
     saveBtn->setObjectName("secondaryBtn");
     saveBtn->setCursor(Qt::PointingHandCursor);
-    saveBtn->setFixedSize(80, 30);
+    saveBtn->setFixedSize(84, 32);
     saveBtn->setToolTip("Save the current output image");
 
     applyBtn = new QPushButton("Apply", row2);
     applyBtn->setObjectName("primaryBtn");
     applyBtn->setCursor(Qt::PointingHandCursor);
-    applyBtn->setFixedSize(100, 30);
+    applyBtn->setFixedSize(112, 34);
+    applyBtn->setStyleSheet(
+        "background-color:#5B4FCF; color:#FFFFFF;"
+        "border:1.5px solid #5B4FCF; border-radius:10px;"
+        "padding:8px 18px; font-weight:600; font-size:13px;"
+    );
     applyBtn->setToolTip("Apply the selected operation (Enter)");
 
     r2->addWidget(taskDescLabel, 1);
@@ -238,7 +249,9 @@ void TopTaskBar::updateHelpText(int taskIndex) {
 
     int idx = taskIndex - 1;
     if (idx >= 0 && idx < 10) {
-        helpBubble->setToolTip(data[idx].tip);
+      helpBubble->setToolTip(QString(
+        "<div style='max-width:320px; line-height:1.45; color:#2C2825;'>%1</div>"
+      ).arg(data[idx].tip));
         if (taskDescLabel) taskDescLabel->setText(data[idx].desc);
     }
 }

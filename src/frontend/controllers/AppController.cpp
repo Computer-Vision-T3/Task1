@@ -14,6 +14,7 @@
 #include "../../backend/Module5_FrequencyAndHybrid/FrequencyFilters.h"
 
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QComboBox>
 #include <QSlider>
@@ -177,10 +178,10 @@ void AppController::handleApply() {
         QString html = QString(R"(
             <style>
                 body { font-family: 'DM Sans', 'Segoe UI', sans-serif; color: #2C2825; margin: 0; padding: 0; }
-                .card { background: #FAFAF8; border-radius: 10px; padding: 14px 16px; margin-bottom: 12px; }
+                .card { background: #FFFFFF; border: 1px solid #E6E0F7; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
                 .card h4 { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: #A09890; text-transform: uppercase; }
                 .val { font-size: 26px; font-weight: 900; color: %1; letter-spacing: -0.02em; }
-                .badge { display: inline-block; background: %1; color: #fff; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 800; margin-bottom: 8px; }
+                .badge { display: inline-block; background: %1; color: #FFFFFF; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 800; margin-bottom: 8px; }
                 .desc { font-size: 12px; color: #7A7268; line-height: 1.6; }
                 .formula { font-size: 13px; font-weight: 700; color: #5B4FCF; background: #EDE8FF; border-radius: 6px; padding: 6px 12px; display: inline-block; margin-top: 6px; }
                 .range-row { display: flex; margin: 4px 0; }
@@ -265,19 +266,36 @@ void AppController::handleSave() {
         return;
     }
 
-    QString filter   = "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (*.bmp)";
+    QString filter = "PNG Image (*.png);;JPEG Image (*.jpg *.jpeg);;BMP Image (*.bmp)";
+    QString selectedFilter;
     QString fileName = QFileDialog::getSaveFileName(
-        mainWindow, "Save Processed Image", "", filter
+        mainWindow, "Save Processed Image", "", filter, &selectedFilter
     );
 
     if (!fileName.isEmpty()) {
-        bool ok = cv::imwrite(fileName.toStdString(), outputs[0]->getImage());
-        if (ok) {
-            mainWindow->setStatusMessage("Saved ✓", true);
-        } else {
+        if (QFileInfo(fileName).suffix().isEmpty()) {
+            if (selectedFilter.contains("*.jpg") || selectedFilter.contains("*.jpeg")) {
+                fileName += ".jpg";
+            } else if (selectedFilter.contains("*.bmp")) {
+                fileName += ".bmp";
+            } else {
+                fileName += ".png";
+            }
+        }
+
+        try {
+            bool ok = cv::imwrite(fileName.toStdString(), outputs[0]->getImage());
+            if (ok) {
+                mainWindow->setStatusMessage("Saved ✓", true);
+            } else {
+                mainWindow->setStatusMessage("Save failed", false);
+                QMessageBox::critical(mainWindow, "Save Error",
+                    "Could not write the file. Check path and extension.");
+            }
+        } catch (const cv::Exception&) {
             mainWindow->setStatusMessage("Save failed", false);
             QMessageBox::critical(mainWindow, "Save Error",
-                "Could not write the file. Check path and extension.");
+                "Could not write the file. Use a valid image extension (png, jpg, bmp).");
         }
     }
 }

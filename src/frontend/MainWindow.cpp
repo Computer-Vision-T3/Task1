@@ -370,14 +370,18 @@ void MainWindow::updateLayoutForTask(int taskIndex) {
         infoSidebar->setHtml(R"(
             <style>
                 body { font-family: 'DM Sans', 'Segoe UI', sans-serif; color: #2C2825; margin: 0; padding: 0; }
+                .card { background: #FFFFFF; border: 1px solid #E6E0F7; border-radius: 12px; padding: 14px 14px; margin-bottom: 10px; }
                 h3 { font-size: 15px; font-weight: 800; color: #2C2825; margin: 0 0 4px; }
                 p { font-size: 12px; color: #7A7268; line-height: 1.6; margin: 8px 0 0; }
-                .badge { display: inline-block; background: #EDE8FF; color: #5B4FCF; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+                .badge { display: inline-block; background: #EDE8FF; color: #3D348F; border-radius: 6px; padding: 3px 9px; font-size: 11px; font-weight: 800; }
             </style>
-            <h3>Entropy Analysis</h3>
-            <p>Load an image and click <b>Apply</b> to see the Shannon entropy value and pixel distribution graph.</p>
-            <br>
-            <p class='badge'>H = −Σ pᵢ log₂(pᵢ)</p>
+            <div class='card'>
+                <h3>Entropy Analysis</h3>
+                <p>Load an image and click <b>Apply</b> to see the Shannon entropy value and pixel distribution graph.</p>
+            </div>
+            <div class='card'>
+                <p class='badge'>H = −Σ pᵢ log₂(pᵢ)</p>
+            </div>
         )");
     } else {
         rebuildPanels(1, 1, {"Source Image"}, {"Processed Output"});

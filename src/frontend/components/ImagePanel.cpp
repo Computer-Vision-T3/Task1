@@ -143,7 +143,8 @@ ImagePanel::ImagePanel(const QString& title, bool isInput, QWidget *parent)
         loadBtn = new QPushButton("⊕  Load Image", this);
         loadBtn->setObjectName("loadBtn");
         loadBtn->setCursor(Qt::PointingHandCursor);
-        loadBtn->setFixedHeight(24);
+        loadBtn->setFixedHeight(30);
+        loadBtn->setToolTip("Upload an input image (click or drag-and-drop)");
         connect(loadBtn, &QPushButton::clicked, this, &ImagePanel::handleLoadImage);
         footerLayout->addWidget(loadBtn);
     }
