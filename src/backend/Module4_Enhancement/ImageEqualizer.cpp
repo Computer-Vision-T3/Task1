@@ -134,47 +134,30 @@ cv::Mat ImageEqualizer::equalize_grayScale(const cv::Mat& image) {
     return equalized;
 }
 
-// Equalize RGB image
 cv::Mat ImageEqualizer::equalize_rgb(const cv::Mat& image) {
-    cv::Mat blue_cdf_mat, green_cdf_mat, red_cdf_mat;
-    rgb_cdf(image, blue_cdf_mat, green_cdf_mat, red_cdf_mat);
 
+    // Convert the image to YCrCb color space
+    cv::Mat ycrcb;
+    cv::cvtColor(image, ycrcb, cv::COLOR_BGR2YCrCb);
+
+    // Split the channels
     std::vector<cv::Mat> channels;
-    cv::split(image, channels);
+    cv::split(ycrcb, channels);
 
-    
-auto buildLUT = [](const cv::Mat& cdf) -> cv::Mat {
-    cv::Mat lut(1, 256, CV_8U);
-    float cdfMin = 0;
-    for (int i = 0; i < 256; i++) {
-        if (cdf.at<float>(i) > 0) { cdfMin = cdf.at<float>(i); break; }
-    }
-    float cdfMax = cdf.at<float>(255);
-    if (cdfMax == cdfMin)
-        return cv::Mat(1, 256, CV_8U, cv::Scalar(0));
+    // Apply equalization only on the luminance channel (Y)
+    channels[0] = equalize_grayScale(channels[0]);
 
-    for (int i = 0; i < 256; i++) {
-        float val = cdf.at<float>(i);
-        lut.at<uchar>(i) = (val == 0) ? 0 :
-            cv::saturate_cast<uchar>((val - cdfMin) * 255.0f / (cdfMax - cdfMin));
-    }
-    return lut;
-};
- 
+    // Merge the channels back
+    cv::merge(channels, ycrcb);
 
-    cv::Mat lut_blue  = buildLUT(blue_cdf_mat);
-    cv::Mat lut_green = buildLUT(green_cdf_mat);
-    cv::Mat lut_red   = buildLUT(red_cdf_mat);
+    // Convert back to BGR color space
+    cv::Mat result;
+    cv::cvtColor(ycrcb, result, cv::COLOR_YCrCb2BGR);
 
-    cv::Mat result_blue, result_green, result_red;
-    cv::LUT(channels[0], lut_blue,  result_blue);
-    cv::LUT(channels[1], lut_green, result_green);
-    cv::LUT(channels[2], lut_red,   result_red);
-
-    cv::Mat equalized;
-    cv::merge(std::vector<cv::Mat>{result_blue, result_green, result_red}, equalized);
-    return equalized;
+    return result;
 }
+    
+ 
 
 // Equalize image (grayscale or RGB)
 cv::Mat ImageEqualizer::equalize_image(const cv::Mat& image) {
